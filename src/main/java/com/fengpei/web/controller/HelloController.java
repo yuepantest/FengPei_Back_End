@@ -463,7 +463,7 @@ public class HelloController {
         BaseDateUser success = new BaseDateUser();
         success.code = 1;
         success.msg = "登录成功";
-        String str = "F123456" + EncryptUtils.salt;
+        String str = "123789FP" + EncryptUtils.salt;
         String token;
         try {
             byte[] bytes = EncryptUtils.StringToUTF8(str);
