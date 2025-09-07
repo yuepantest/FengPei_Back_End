@@ -4,6 +4,7 @@ import com.fengpei.web.entiry.CalculateData;
 import com.fengpei.web.entiry.Client;
 
 import java.sql.ResultSet;
+import java.util.Objects;
 
 
 public class BusinessTool {
@@ -95,6 +96,9 @@ public class BusinessTool {
     }
 
     public String getString(Client client, String TABLE_NAME) {
+        if(Objects.equals(client.bankId, "")){
+            client.bankId= "''" ;
+        }
         String str = "(clientName,city,phone,identityCard,monthIncome,socialSecurity,accumulationFund,estateValue,loanAmount,antPoints,creditStatue,bankId,assessMoney,status,type,applyTime) VALUES " + "(" + "'" + client.clientName + "'" + "," + "'" + client.city + "'" + "," + "'" + client.phone + "'" + "," + "'" + client.identityCard + "'" + "," + client.monthIncome + "," + client.socialSecurity + "," + client.accumulationFund + "," + client.estateValue + "," + client.loanAmount + "," + client.antPoints + "," + client.creditStatue + "," + client.bankId + "," + client.assessMoney + "," + client.status + "," + client.type + "," + "'" + client.applyTime + "'" + ")";
         return "INSERT INTO " + TABLE_NAME + str;
     }
@@ -157,6 +161,9 @@ public class BusinessTool {
     }
 
     public String getBankContent(String bankId) {
+        if(bankId.isEmpty()){
+            return "写待补充";
+        }
         String bankIdStart = formalTool.subString(bankId, 0, 4);
         String bankIdEnd = formalTool.subString(bankId, bankId.length() - 4, bankId.length());
         return bankId.length() > 8 ? bankIdStart + "  ****  " + bankIdEnd : bankId;
