@@ -14,6 +14,8 @@ public class CalculateData {
     public String content_four;
     public String title_five;
     public String content_five;
+    public String title_six;
+    public String content_six;
     public String rate;
     public String applicationNumber;
     public String bankIdContent;

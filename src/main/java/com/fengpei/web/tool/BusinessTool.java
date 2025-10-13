@@ -48,14 +48,18 @@ public class BusinessTool {
             calculateData.applicationNumber = "YX" + getApplicationNumber();
         } else {
             rate = 0.012;
-            calculateData.title_one = "12期";
-            calculateData.content_one = "月供：" + formalTool.setStringDoubledEnd2(number / 12 + number * rate);
-            calculateData.title_two = "24期";
-            calculateData.content_two = "月供：" + formalTool.setStringDoubledEnd2(number / 24 + number * rate);
-            calculateData.title_three = "36期";
-            calculateData.content_tree = "月供：" + formalTool.setStringDoubledEnd2(number / 36 + number * rate);
-            calculateData.title_four = "60期";
-            calculateData.content_four = "月供：" + formalTool.setStringDoubledEnd2(number / 60 + number * rate);
+            calculateData.title_one = "3期";
+            calculateData.content_one = "月供：" + formalTool.setStringDoubledEnd2(number / 3 + number * rate);
+            calculateData.title_two = "6期";
+            calculateData.content_two = "月供：" + formalTool.setStringDoubledEnd2(number / 6 + number * rate);
+            calculateData.title_three = "12期";
+            calculateData.content_tree = "月供：" + formalTool.setStringDoubledEnd2(number / 12 + number * rate);
+            calculateData.title_four = "18期";
+            calculateData.content_four = "月供：" + formalTool.setStringDoubledEnd2(number / 18 + number * rate);
+            calculateData.title_five = "24期";
+            calculateData.content_five = "月供：" + formalTool.setStringDoubledEnd2(number / 24 + number * rate);
+            calculateData.title_six = "36期";
+            calculateData.content_six = "月供：" + formalTool.setStringDoubledEnd2(number / 36 + number * rate);
             calculateData.rate = "1.2%";
             calculateData.applicationNumber = "GX" + getApplicationNumber();
         }
@@ -162,7 +166,7 @@ public class BusinessTool {
 
     public String getBankContent(String bankId) {
         if(bankId.isEmpty()){
-            return "写待补充";
+            return "待补充";
         }
         String bankIdStart = formalTool.subString(bankId, 0, 4);
         String bankIdEnd = formalTool.subString(bankId, bankId.length() - 4, bankId.length());
