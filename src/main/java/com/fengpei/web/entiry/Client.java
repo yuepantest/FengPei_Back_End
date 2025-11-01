@@ -53,4 +53,5 @@ public class Client {
     public String submitTime;
     public String refuseReasonOne;
     public String refuseReasonTwo;
+    public String applicationNumber;
 }

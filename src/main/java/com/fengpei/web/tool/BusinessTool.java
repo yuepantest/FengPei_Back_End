@@ -11,13 +11,14 @@ public class BusinessTool {
 
     public FormalTool formalTool = new FormalTool();
 
-    public CalculateData setSelectDataContent(Integer sum, Integer type, String bankId, String identityCard, long clientId) {
+    public CalculateData setSelectDataContent(Integer sum, Integer type, String bankId, String identityCard, long clientId,String applicationNumber) {
         CalculateData calculateData = new CalculateData();
         calculateData.type = type;
         calculateData.bankIdContent = getBankContent(bankId);
         calculateData.identityCardContent = getIdentityContent(identityCard);
         calculateData.num = sum;
         calculateData.id = clientId;
+        calculateData.applicationNumber = applicationNumber;
         double number = (double) sum;
         double rate;
         if (type == 1) {
@@ -33,7 +34,6 @@ public class BusinessTool {
             calculateData.title_five = "60期";
             calculateData.content_five = "月供：" + formalTool.setStringDoubledEnd2(number / 60 + number * rate);
             calculateData.rate = "0.8%";
-            calculateData.applicationNumber = "JY" + getApplicationNumber();
         } else if (type == 2) {
             rate = 0.006;
             calculateData.title_one = "12期";
@@ -45,7 +45,6 @@ public class BusinessTool {
             calculateData.title_four = "60期";
             calculateData.content_four = "月供：" + formalTool.setStringDoubledEnd2(number * rate);
             calculateData.rate = "0.6%";
-            calculateData.applicationNumber = "YX" + getApplicationNumber();
         } else {
             rate = 0.012;
             calculateData.title_one = "3期";
@@ -61,13 +60,8 @@ public class BusinessTool {
             calculateData.title_six = "36期";
             calculateData.content_six = "月供：" + formalTool.setStringDoubledEnd2(number / 36 + number * rate);
             calculateData.rate = "1.2%";
-            calculateData.applicationNumber = "GX" + getApplicationNumber();
         }
         return calculateData;
-    }
-
-    public String getApplicationNumber() {
-        return formalTool.getReturnTime();
     }
 
     public double countingOneStep(double annualIncome, double quantityNumber, Integer loanAmount, double estate) {
@@ -103,7 +97,7 @@ public class BusinessTool {
         if(Objects.equals(client.bankId, "")){
             client.bankId= "''" ;
         }
-        String str = "(clientName,city,phone,identityCard,monthIncome,socialSecurity,accumulationFund,estateValue,loanAmount,antPoints,creditStatue,bankId,assessMoney,status,type,applyTime) VALUES " + "(" + "'" + client.clientName + "'" + "," + "'" + client.city + "'" + "," + "'" + client.phone + "'" + "," + "'" + client.identityCard + "'" + "," + client.monthIncome + "," + client.socialSecurity + "," + client.accumulationFund + "," + client.estateValue + "," + client.loanAmount + "," + client.antPoints + "," + client.creditStatue + "," + client.bankId + "," + client.assessMoney + "," + client.status + "," + client.type + "," + "'" + client.applyTime + "'" + ")";
+        String str = "(clientName,city,phone,identityCard,monthIncome,socialSecurity,accumulationFund,estateValue,loanAmount,antPoints,creditStatue,bankId,assessMoney,status,type,applyTime,applicationNumber) VALUES " + "(" + "'" + client.clientName + "'" + "," + "'" + client.city + "'" + "," + "'" + client.phone + "'" + "," + "'" + client.identityCard + "'" + "," + client.monthIncome + "," + client.socialSecurity + "," + client.accumulationFund + "," + client.estateValue + "," + client.loanAmount + "," + client.antPoints + "," + client.creditStatue + "," + client.bankId + "," + client.assessMoney + "," + client.status + "," + client.type + "," + "'" + client.applyTime + "'"+ "," + "'" + client.applicationNumber + "'" + ")";
         return "INSERT INTO " + TABLE_NAME + str;
     }
 
@@ -161,11 +155,12 @@ public class BusinessTool {
         client.submitTime = resultSet.getString("submitTime");
         client.refuseReasonTwo = resultSet.getString("refuseReasonTwo");
         client.refuseReasonOne = resultSet.getString("refuseReasonOne");
+        client.applicationNumber = resultSet.getString("applicationNumber");
         return client;
     }
 
     public String getBankContent(String bankId) {
-        if(bankId.isEmpty()){
+        if(bankId==null||bankId.isEmpty()){
             return "待补充";
         }
         String bankIdStart = formalTool.subString(bankId, 0, 4);

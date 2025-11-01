@@ -26,7 +26,15 @@ public class FormalTool {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         return now.format(formatter);
     }
-
+    public String getApplicationNumber(int type){
+        String str="GX";
+        if(type==1){
+            str="JY";
+        }else if(type==2){
+            str="YX";
+        }
+      return str+getReturnTime();
+    }
     public String getReturnTime() {
         // 获取当前日期时间
         LocalDateTime now = LocalDateTime.now();

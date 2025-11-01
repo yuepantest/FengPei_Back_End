@@ -382,6 +382,7 @@ public class HelloController {
         double estate = estateValue;
         double quantity = businessTool.countingOneStep((double) annualIncome, quantityNumber, loanAmount, estate);
         int result = businessTool.countingTwoStep(antPoints, creditQuery, quantity);
+        String applicationNumber = businessTool.formalTool.getApplicationNumber(type);
         long clientId = 0;
         //数据入库
         if (result > 0) {
@@ -402,6 +403,7 @@ public class HelloController {
             client.assessMoney = result;
             client.status = 0;
             client.applyTime = businessTool.formalTool.getCurrentTime();
+            client.applicationNumber = applicationNumber;
             clientId = dataDao.addClientData(client, dataSource);
             if (clientId < 1) {
                 success.code = 0;
@@ -411,20 +413,45 @@ public class HelloController {
         }
         success.code = 1;
         success.msg = "获取额度成功";
-        success.setData(businessTool.setSelectDataContent(result, type, bankId, identityCard, clientId));
+        success.setData(businessTool.setSelectDataContent(result, type, bankId, identityCard, clientId, applicationNumber));
         return success;
     }
-
-
     /**
      * 添加数据
      */
     @PostMapping("/getCalculateDate")
-    public BaseDataCalculating getCalculateDate(int assessMoney, String bankId, String identityCard, int clientId, Integer type) {
+    public BaseDataCalculating getCalculateDate(Integer clientId) {
         BaseDataCalculating success = new BaseDataCalculating();
-        success.code = 1;
-        success.msg = "获取数据成功";
-        success.setData(businessTool.setSelectDataContent(assessMoney, type, bankId, identityCard, clientId));
+        if (clientId == null) {
+            success.code = 1;
+            success.msg = NULL_PARAMETER;
+            return success;
+        }
+        try {
+            Connection connection = dataSource.getConnection();
+            Statement statement = connection.createStatement();
+            String sql = "SELECT * FROM " + TABLE_NAME + " where id =";
+            ResultSet resultSet = statement.executeQuery(sql + clientId);
+            try {
+                if (resultSet.next()) {
+                    Client client = businessTool.setClientData(resultSet);
+                    success.setData(businessTool.setSelectDataContent(client.assessMoney, client.type, client.bankId, client.identityCard, client.id,client.applicationNumber));
+                    success.code=1;
+                    success.msg="请求成功";
+                } else {
+                    success.code=0;
+                    success.msg=("没有数据");
+                }
+            } catch (Exception e) {
+                success.code=0;
+                success.msg="丰沛:getCalculateDate0解析数据异常";
+
+            }
+            closeResource(statement, connection);
+        } catch (SQLException e) {
+            success.code=(0);
+            success.msg="丰沛:getCalculateDate1数据库操作失败";
+        }
         return success;
     }
 
