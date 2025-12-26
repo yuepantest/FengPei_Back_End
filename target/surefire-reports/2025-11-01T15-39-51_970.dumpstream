@@ -1,0 +1,10 @@
+# Created at 2025-11-01T15:39:52.283
+Boot Manifest-JAR contains absolute paths in classpath 'D:\java_workspace\FengPei_Back_End\target\test-classes'
+Hint: <argLine>-Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
+'other' has different root
+
+# Created at 2025-11-01T15:39:52.285
+Boot Manifest-JAR contains absolute paths in classpath 'D:\java_workspace\FengPei_Back_End\target\test-classes'
+Hint: <argLine>-Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
+'other' has different root
+

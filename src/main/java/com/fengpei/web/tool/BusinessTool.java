@@ -22,7 +22,7 @@ public class BusinessTool {
         double number = (double) sum;
         double rate;
         if (type == 1) {
-            rate = 0.008;
+            rate = 0.0071;
             calculateData.title_one = "12期";
             calculateData.content_one = "月供：" + formalTool.setStringDoubledEnd2(number / 12 + number * rate);
             calculateData.title_two = "24期";
@@ -33,20 +33,16 @@ public class BusinessTool {
             calculateData.content_four = "月供：" + formalTool.setStringDoubledEnd2(number / 48 + number * rate);
             calculateData.title_five = "60期";
             calculateData.content_five = "月供：" + formalTool.setStringDoubledEnd2(number / 60 + number * rate);
-            calculateData.rate = "0.8%";
+            calculateData.rate = "0.71";
         } else if (type == 2) {
-            rate = 0.006;
-            calculateData.title_one = "12期";
-            calculateData.content_one = "月供：" + formalTool.setStringDoubledEnd2(number * rate);
-            calculateData.title_two = "24期";
-            calculateData.content_two = "月供：" + formalTool.setStringDoubledEnd2(number * rate);
-            calculateData.title_three = "36期";
-            calculateData.content_tree = "月供：" + formalTool.setStringDoubledEnd2(number * rate);
-            calculateData.title_four = "60期";
-            calculateData.content_four = "月供：" + formalTool.setStringDoubledEnd2(number * rate);
-            calculateData.rate = "0.6%";
+            rate = 0.0057;
+            calculateData.title_one = "先息后本";
+            calculateData.content_one = (number * rate)+"";
+            calculateData.title_two = "等额本息";
+            calculateData.content_two = (number / 36 + number * rate)+"";
+            calculateData.rate = "0.57";
         } else {
-            rate = 0.012;
+            rate = 0.0117;
             calculateData.title_one = "3期";
             calculateData.content_one = "月供：" + formalTool.setStringDoubledEnd2(number / 3 + number * rate);
             calculateData.title_two = "6期";
@@ -59,7 +55,7 @@ public class BusinessTool {
             calculateData.content_five = "月供：" + formalTool.setStringDoubledEnd2(number / 24 + number * rate);
             calculateData.title_six = "36期";
             calculateData.content_six = "月供：" + formalTool.setStringDoubledEnd2(number / 36 + number * rate);
-            calculateData.rate = "1.2%";
+            calculateData.rate = "1.17";
         }
         return calculateData;
     }
