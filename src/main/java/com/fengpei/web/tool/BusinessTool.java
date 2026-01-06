@@ -152,6 +152,7 @@ public class BusinessTool {
         client.refuseReasonTwo = resultSet.getString("refuseReasonTwo");
         client.refuseReasonOne = resultSet.getString("refuseReasonOne");
         client.applicationNumber = resultSet.getString("applicationNumber");
+        client.sendMsg = resultSet.getInt("sendMsg");
         return client;
     }
 

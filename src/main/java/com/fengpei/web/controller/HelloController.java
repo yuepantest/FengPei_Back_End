@@ -1,11 +1,16 @@
 package com.fengpei.web.controller;
 
 
+import com.fengpei.web.WebClient.ExternalService;
+import com.fengpei.web.WebClient.WebClientConfig;
 import com.fengpei.web.entiry.*;
 import com.fengpei.web.tool.BusinessTool;
 import com.fengpei.web.tool.EncryptUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import javax.sql.DataSource;
 import java.io.UnsupportedEncodingException;
@@ -28,6 +33,12 @@ public class HelloController {
     private final static String NULL_PARAMETER = "请求参数不能为空";
     private final DataDao dataDao = new DataDao();
     public final BusinessTool businessTool = new BusinessTool();
+
+    private final ExternalService externalService;
+
+    public HelloController(ExternalService externalService) {
+        this.externalService = externalService;
+    }
 
 
     @GetMapping("/hello")
@@ -416,6 +427,7 @@ public class HelloController {
         success.setData(businessTool.setSelectDataContent(result, type, bankId, identityCard, clientId, applicationNumber));
         return success;
     }
+
     /**
      * 添加数据
      */
@@ -435,34 +447,34 @@ public class HelloController {
             try {
                 if (resultSet.next()) {
                     Client client = businessTool.setClientData(resultSet);
-                    success.setData(businessTool.setSelectDataContent(client.assessMoney, client.type, client.bankId, client.identityCard, client.id,client.applicationNumber));
-                    success.code=1;
-                    success.msg="请求成功";
+                    success.setData(businessTool.setSelectDataContent(client.assessMoney, client.type, client.bankId, client.identityCard, client.id, client.applicationNumber));
+                    success.code = 1;
+                    success.msg = "请求成功";
                 } else {
-                    success.code=0;
-                    success.msg=("没有数据");
+                    success.code = 0;
+                    success.msg = ("没有数据");
                 }
             } catch (Exception e) {
-                success.code=0;
-                success.msg="丰沛:getCalculateDate0解析数据异常";
+                success.code = 0;
+                success.msg = "丰沛:getCalculateDate0解析数据异常";
 
             }
             closeResource(statement, connection);
         } catch (SQLException e) {
-            success.code=(0);
-            success.msg="丰沛:getCalculateDate1数据库操作失败";
+            success.code = (0);
+            success.msg = "丰沛:getCalculateDate1数据库操作失败";
         }
         return success;
     }
 
     @PostMapping("/updateData")
-    public BaseData updateData(int clientId, String educationBackground, String maritalStatus, String debt, String presentAddress, String detailAddress, String livingModel, int livingSpend, String childrenNumber, String relativeOneName, String relativeOneBetween, String relativeOnePhone, String relativeTwoName, String relativeTwoBetween, String relativeTwoPhone, String colleagueOneName, String colleagueOnePhone, String colleagueTwoName, String colleagueTwoPhone, String companyname, String companytype, String companysector, String companyposition, String companytime, String leaderName, String companyScale, String monthSalary, String acquairSalaryType, String acquairSalaryDate, String companyAdress, String companyPhoneNumber, String commuteTime, String remark) {
+    public BaseData updateData(int clientId, String educationBackground, String maritalStatus, String debt, String repayMonths, String presentAddress, String detailAddress, String livingModel, int livingSpend, String childrenNumber, String relativeOneName, String relativeOneBetween, String relativeOnePhone, String relativeTwoName, String relativeTwoBetween, String relativeTwoPhone, String colleagueOneName, String colleagueOnePhone, String colleagueTwoName, String colleagueTwoPhone, String companyname, String companytype, String companysector, String companyposition, String companytime, String leaderName, String companyScale, String monthSalary, String acquairSalaryType, String acquairSalaryDate, String companyAdress, String companyPhoneNumber, String commuteTime, String remark) {
         BaseData success = new BaseData();
         String currentTime = businessTool.formalTool.getCurrentTime();
         try {
             Connection connection = dataSource.getConnection();
             Statement statement = connection.createStatement();
-            String str = " SET" + " educationBackground = " + "'" + educationBackground + "'" + ", maritalStatus = " + "'" + maritalStatus + "'" + ", debt = " + "'" + debt + "'" + ", presentAddress = " + "'" + presentAddress + "'" + ", detailAddress = " + "'" + detailAddress + "'" + ", livingModel = " + "'" + livingModel + "'" + ", livingSpend = " + livingSpend + ", childrenNumber = " + "'" + childrenNumber + "'" + ", relativeOneName = " + "'" + relativeOneName + "'" + ", relativeOneBetween = " + "'" + relativeOneBetween + "'" + ", relativeOnePhone = " + "'" + relativeOnePhone + "'" + ", relativeTwoName = " + "'" + relativeTwoName + "'" + ", relativeTwoBetween = " + "'" + relativeTwoBetween + "'" + ", relativeTwoPhone = " + "'" + relativeTwoPhone + "'" + ", colleagueOneName = " + "'" + colleagueOneName + "'" + ", colleagueOnePhone = " + "'" + colleagueOnePhone + "'" + ", colleagueTwoName = " + "'" + colleagueTwoName + "'" + ", colleagueTwoPhone = " + "'" + colleagueTwoPhone + "'" + ", companyname = " + "'" + companyname + "'" + ", companytype = " + "'" + companytype + "'" + ", companysector = " + "'" + companysector + "'" + ", companyposition = " + "'" + companyposition + "'" + ", companytime = " + "'" + companytime + "'" + ", leaderName = " + "'" + leaderName + "'" + ", companyScale = " + "'" + companyScale + "'" + ", monthSalary = " + "'" + monthSalary + "'" + ", acquairSalaryType = " + "'" + acquairSalaryType + "'" + ", acquairSalaryDate = " + "'" + acquairSalaryDate + "'" + ", companyAdress = " + "'" + companyAdress + "'" + ", companyPhoneNumber = " + "'" + companyPhoneNumber + "'" + ", commuteTime = " + "'" + commuteTime + "'" + ", remark = " + "'" + remark + "'" + ", submitTime = " + "'" + currentTime + "'" + ", status = " + 1 + " WHERE id=" + clientId;
+            String str = " SET" + " educationBackground = " + "'" + educationBackground + "'" + ", maritalStatus = " + "'" + maritalStatus + "'" + ", debt = " + "'" + debt + "'" + ", repayMonths = " + "'" + repayMonths + "'" + ", presentAddress = " + "'" + presentAddress + "'" + ", detailAddress = " + "'" + detailAddress + "'" + ", livingModel = " + "'" + livingModel + "'" + ", livingSpend = " + livingSpend + ", childrenNumber = " + "'" + childrenNumber + "'" + ", relativeOneName = " + "'" + relativeOneName + "'" + ", relativeOneBetween = " + "'" + relativeOneBetween + "'" + ", relativeOnePhone = " + "'" + relativeOnePhone + "'" + ", relativeTwoName = " + "'" + relativeTwoName + "'" + ", relativeTwoBetween = " + "'" + relativeTwoBetween + "'" + ", relativeTwoPhone = " + "'" + relativeTwoPhone + "'" + ", colleagueOneName = " + "'" + colleagueOneName + "'" + ", colleagueOnePhone = " + "'" + colleagueOnePhone + "'" + ", colleagueTwoName = " + "'" + colleagueTwoName + "'" + ", colleagueTwoPhone = " + "'" + colleagueTwoPhone + "'" + ", companyname = " + "'" + companyname + "'" + ", companytype = " + "'" + companytype + "'" + ", companysector = " + "'" + companysector + "'" + ", companyposition = " + "'" + companyposition + "'" + ", companytime = " + "'" + companytime + "'" + ", leaderName = " + "'" + leaderName + "'" + ", companyScale = " + "'" + companyScale + "'" + ", monthSalary = " + "'" + monthSalary + "'" + ", acquairSalaryType = " + "'" + acquairSalaryType + "'" + ", acquairSalaryDate = " + "'" + acquairSalaryDate + "'" + ", companyAdress = " + "'" + companyAdress + "'" + ", companyPhoneNumber = " + "'" + companyPhoneNumber + "'" + ", commuteTime = " + "'" + commuteTime + "'" + ", remark = " + "'" + remark + "'" + ", submitTime = " + "'" + currentTime + "'" + ", status = " + 1 + " WHERE id=" + clientId;
             String sql = "UPDATE " + TABLE_NAME + str;
             int code = statement.executeUpdate(sql);
             if (code == 1) {
@@ -512,4 +524,40 @@ public class HelloController {
         return success;
     }
 
+
+    /**
+     * 获取客户列表
+     */
+    @PostMapping("/sendMsg")
+    public Mono<BaseData> sendMsg(Integer clientId, String content, String phone) {
+        Mono<RespondMsgToUser> respondMsgToUserMono = externalService.postData(phone, content);
+        return respondMsgToUserMono.map(response -> {
+            BaseData result = new BaseData();
+            if (Objects.equals(response.returnstatus, "Success")) {
+                try {
+                    Connection connection = dataSource.getConnection();
+                    Statement statement = connection.createStatement();
+                    String str = " SET sendMsg = " + 1  + " WHERE id=" + clientId;
+                    String sql = "UPDATE " + TABLE_NAME + str;
+                    int code = statement.executeUpdate(sql);
+                    if (code == 1) {
+                        result.code = 1;
+                        result.msg = "发送成功，更新数据库成功";
+                    } else {
+                        result.code = 1;
+                        result.msg = "发送成功,但修改数据库失败";
+                    }
+                    statement.close();
+                    connection.close();
+                } catch (Exception e) {
+                    result.code = 1;
+                    result.msg = "发送成功,但修改数据库失败";
+                }
+            } else {
+                result.code = 2;
+                result.msg = "发送失败: " + response.message;
+            }
+            return result;
+        });
+    }
 }

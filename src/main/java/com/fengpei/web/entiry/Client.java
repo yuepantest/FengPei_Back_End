@@ -54,4 +54,5 @@ public class Client {
     public String refuseReasonOne;
     public String refuseReasonTwo;
     public String applicationNumber;
+    public Integer sendMsg;
 }
