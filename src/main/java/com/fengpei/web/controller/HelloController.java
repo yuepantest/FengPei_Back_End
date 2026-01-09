@@ -31,6 +31,7 @@ public class HelloController {
     private DataSource dataSource;
     private final static String TABLE_NAME = "fengpei.clients";
     private final static String NULL_PARAMETER = "请求参数不能为空";
+    public final static long REPETITION = -100215401;//数据库某些字段重复
     private final DataDao dataDao = new DataDao();
     public final BusinessTool businessTool = new BusinessTool();
 
@@ -49,9 +50,11 @@ public class HelloController {
     @GetMapping("/resultData-tes")
     public BaseDataResult resultData(@RequestParam(value = "test", required = false) String test) {
         BaseDataResult success = new BaseDataResult();
+        Connection connection = null;
+        Statement statement = null;
         try {
-            Connection connection = dataSource.getConnection();
-            Statement statement = connection.createStatement();
+            connection = dataSource.getConnection();
+            statement = connection.createStatement();
             String sql = "SELECT * FROM + " + TABLE_NAME + " where name like";
             String regexPattern = "\"%" + test + "%\""; // 不区分大小写匹配
             ResultSet resultSet = statement.executeQuery(sql + regexPattern);
@@ -68,7 +71,7 @@ public class HelloController {
         } catch (SQLException e) {
             success.setCode(0);
             success.setMsg("请求失败");
-            throw new RuntimeException(e);
+            closeResource(statement, connection);
         }
         return success;
     }
@@ -84,9 +87,11 @@ public class HelloController {
             success.msg = NULL_PARAMETER;
             return success;
         }
+        Connection connection = null;
+        Statement statement = null;
         try {
-            Connection connection = dataSource.getConnection();
-            Statement statement = connection.createStatement();
+            connection = dataSource.getConnection();
+            statement = connection.createStatement();
             String sql = "SELECT * FROM " + TABLE_NAME + " where id =";
             ResultSet resultSet = statement.executeQuery(sql + clientId);
             try {
@@ -108,6 +113,7 @@ public class HelloController {
         } catch (SQLException e) {
             success.setCode(0);
             success.setMsg("丰沛:getUserById数据库操作失败");
+            closeResource(statement, connection);
         }
         return success;
     }
@@ -125,9 +131,11 @@ public class HelloController {
         }
         BaseDataListClient success = new BaseDataListClient();
         List<Client> clientList = new ArrayList<>();
+        Connection connection = null;
+        Statement statement = null;
         try {
-            Connection connection = dataSource.getConnection();
-            Statement statement = connection.createStatement();
+            connection = dataSource.getConnection();
+            statement = connection.createStatement();
             String sql = "SELECT * FROM " + TABLE_NAME + " where clientName like";
             String regexPattern = "\"%" + text + "%\""; // 不区分大小写匹配
             ResultSet resultSet = statement.executeQuery(sql + regexPattern);
@@ -146,7 +154,7 @@ public class HelloController {
         } catch (SQLException e) {
             success.setCode(0);
             success.setMsg("丰沛:getClientByName数据库操作失败");
-            throw new RuntimeException(e);
+            closeResource(statement, connection);
         }
         success.setData(clientList);
         return success;
@@ -166,9 +174,11 @@ public class HelloController {
             success.setData(clientList);
             return success;
         }
+        Connection connection = null;
+        Statement statement = null;
         try {
-            Connection connection = dataSource.getConnection();
-            Statement statement = connection.createStatement();
+            connection = dataSource.getConnection();
+            statement = connection.createStatement();
             int limitNum = 20;
             String sql = "SELECT * FROM " + TABLE_NAME + " ORDER BY id DESC " + " LIMIT " + limitNum + " OFFSET " + (page - 1) * limitNum;
             ResultSet resultSet = statement.executeQuery(sql);
@@ -187,6 +197,7 @@ public class HelloController {
         } catch (SQLException e) {
             success.setCode(0);
             success.setMsg("丰沛:getUserList数据库操作失败");
+            closeResource(statement, connection);
         }
         success.setData(clientList);
         return success;
@@ -207,11 +218,13 @@ public class HelloController {
             success.setData(clientList);
             return success;
         }
+        Connection connection = null;
+        Statement statement = null;
         try {
-            Connection connection = dataSource.getConnection();
-            Statement statement = connection.createStatement();
+            connection = dataSource.getConnection();
+            statement = connection.createStatement();
             int limitNum = 20;
-            String sql = "SELECT * FROM " + TABLE_NAME + " WHERE status != 0 " + " ORDER BY id DESC " + " LIMIT " + limitNum + " OFFSET " + (page - 1) * limitNum;
+            String sql = "SELECT * FROM " + TABLE_NAME + " WHERE status != 0 " + " ORDER BY submitTime DESC " + " LIMIT " + limitNum + " OFFSET " + (page - 1) * limitNum;
             ResultSet resultSet = statement.executeQuery(sql);
             try {
                 while (resultSet.next()) {
@@ -228,6 +241,7 @@ public class HelloController {
         } catch (SQLException e) {
             success.setCode(0);
             success.setMsg("丰沛:getUserList数据库操作失败");
+            closeResource(statement, connection);
         }
         success.setData(clientList);
         return success;
@@ -244,9 +258,11 @@ public class HelloController {
             baseData.msg = NULL_PARAMETER;
             return baseData;
         }
+        Connection connection = null;
+        Statement statement = null;
         try {
-            Connection connection = dataSource.getConnection();
-            Statement statement = connection.createStatement();
+            connection = dataSource.getConnection();
+            statement = connection.createStatement();
             String str = " WHERE id = " + clientId;
             String sql = "DELETE FROM " + TABLE_NAME + str;
             int code = statement.executeUpdate(sql);
@@ -262,6 +278,43 @@ public class HelloController {
         } catch (SQLException e) {
             baseData.msg = "丰沛:deleteClient删除客户失败";
             baseData.code = 0;
+            closeResource(statement, connection);
+        }
+        return baseData;
+    }
+
+    /**
+     * 删除客户
+     */
+    @PostMapping("/deleteClientByIdentityCard")
+    public BaseData deleteClientByIdentityCard(String identityCard) {
+        BaseData baseData = new BaseData();
+        if (identityCard == null) {
+            baseData.code = 1;
+            baseData.msg = NULL_PARAMETER;
+            return baseData;
+        }
+        Connection connection = null;
+        Statement statement = null;
+        try {
+            connection = dataSource.getConnection();
+            statement = connection.createStatement();
+            String str = " WHERE identityCard = " + identityCard;
+            String sql = "DELETE FROM " + TABLE_NAME + str;
+            int code = statement.executeUpdate(sql);
+            if (code == 1) {
+                baseData.code = 1;
+                baseData.msg = "删除成功";
+            } else {
+                baseData.code = 0;
+                baseData.msg = "deleteClient删除数据异常码:" + code;
+            }
+            statement.close();
+            connection.close();
+        } catch (SQLException e) {
+            baseData.msg = "丰沛:deleteClient删除客户失败";
+            baseData.code = 0;
+            closeResource(statement, connection);
         }
         return baseData;
     }
@@ -277,9 +330,11 @@ public class HelloController {
             baseData.msg = NULL_PARAMETER;
             return baseData;
         }
+        Connection connection = null;
+        Statement statement = null;
         try {
-            Connection connection = dataSource.getConnection();
-            Statement statement = connection.createStatement();
+            connection = dataSource.getConnection();
+            statement = connection.createStatement();
             //先查询ID
             String sqlInquire = "SELECT * FROM " + TABLE_NAME + " where id =";
             ResultSet resultSet = statement.executeQuery(sqlInquire + clientId);
@@ -309,11 +364,11 @@ public class HelloController {
                 baseData.code = 0;
                 baseData.msg = "modifyClientData修改数据异常码:" + code;
             }
-            statement.close();
-            connection.close();
+            closeResource(statement, connection);
         } catch (Exception e) {
             baseData.msg = "丰沛:modifyClientData修改客户失败";
             baseData.code = 0;
+            closeResource(statement, connection);
         }
         return baseData;
     }
@@ -329,9 +384,11 @@ public class HelloController {
             baseData.msg = NULL_PARAMETER;
             return baseData;
         }
+        Connection connection = null;
+        Statement statement = null;
         try {
-            Connection connection = dataSource.getConnection();
-            Statement statement = connection.createStatement();
+            connection = dataSource.getConnection();
+            statement = connection.createStatement();
             //先查询ID
             String sqlInquire = "SELECT * FROM " + TABLE_NAME + " where id =";
             ResultSet resultSet = statement.executeQuery(sqlInquire + clientId);
@@ -366,13 +423,22 @@ public class HelloController {
         } catch (Exception e) {
             baseData.msg = "丰沛:modifyClientData修改客户失败";
             baseData.code = 0;
+            closeResource(statement, connection);
         }
         return baseData;
     }
 
-    public void closeResource(Statement statement, Connection connection) throws SQLException {
-        statement.close();
-        connection.close();
+    public void closeResource(Statement statement, Connection connection) {
+        try {
+            if (statement != null) {
+                statement.close();
+            }
+            if (connection != null) {
+                connection.close();
+            }
+        } catch (Exception ignored) {
+
+        }
     }
 
     /**
@@ -417,9 +483,15 @@ public class HelloController {
             client.applicationNumber = applicationNumber;
             clientId = dataDao.addClientData(client, dataSource);
             if (clientId < 1) {
-                success.code = 0;
-                success.msg = "input失败";
-                return success;
+                if (clientId == REPETITION) {
+                    success.code = 0;
+                    success.msg = "你已经提交过申请了，请等待...如有疑问请联系公司客服";
+                    return success;
+                } else {
+                    success.code = 0;
+                    success.msg = "input失败";
+                    return success;
+                }
             }
         }
         success.code = 1;
@@ -439,9 +511,11 @@ public class HelloController {
             success.msg = NULL_PARAMETER;
             return success;
         }
+        Connection connection = null;
+        Statement statement = null;
         try {
-            Connection connection = dataSource.getConnection();
-            Statement statement = connection.createStatement();
+            connection = dataSource.getConnection();
+            statement = connection.createStatement();
             String sql = "SELECT * FROM " + TABLE_NAME + " where id =";
             ResultSet resultSet = statement.executeQuery(sql + clientId);
             try {
@@ -461,6 +535,7 @@ public class HelloController {
             }
             closeResource(statement, connection);
         } catch (SQLException e) {
+            closeResource(statement, connection);
             success.code = (0);
             success.msg = "丰沛:getCalculateDate1数据库操作失败";
         }
@@ -471,9 +546,11 @@ public class HelloController {
     public BaseData updateData(int clientId, String educationBackground, String maritalStatus, String debt, String repayMonths, String presentAddress, String detailAddress, String livingModel, int livingSpend, String childrenNumber, String relativeOneName, String relativeOneBetween, String relativeOnePhone, String relativeTwoName, String relativeTwoBetween, String relativeTwoPhone, String colleagueOneName, String colleagueOnePhone, String colleagueTwoName, String colleagueTwoPhone, String companyname, String companytype, String companysector, String companyposition, String companytime, String leaderName, String companyScale, String monthSalary, String acquairSalaryType, String acquairSalaryDate, String companyAdress, String companyPhoneNumber, String commuteTime, String remark) {
         BaseData success = new BaseData();
         String currentTime = businessTool.formalTool.getCurrentTime();
+        Connection connection = null;
+        Statement statement = null;
         try {
-            Connection connection = dataSource.getConnection();
-            Statement statement = connection.createStatement();
+            connection = dataSource.getConnection();
+            statement = connection.createStatement();
             String str = " SET" + " educationBackground = " + "'" + educationBackground + "'" + ", maritalStatus = " + "'" + maritalStatus + "'" + ", debt = " + "'" + debt + "'" + ", repayMonths = " + "'" + repayMonths + "'" + ", presentAddress = " + "'" + presentAddress + "'" + ", detailAddress = " + "'" + detailAddress + "'" + ", livingModel = " + "'" + livingModel + "'" + ", livingSpend = " + livingSpend + ", childrenNumber = " + "'" + childrenNumber + "'" + ", relativeOneName = " + "'" + relativeOneName + "'" + ", relativeOneBetween = " + "'" + relativeOneBetween + "'" + ", relativeOnePhone = " + "'" + relativeOnePhone + "'" + ", relativeTwoName = " + "'" + relativeTwoName + "'" + ", relativeTwoBetween = " + "'" + relativeTwoBetween + "'" + ", relativeTwoPhone = " + "'" + relativeTwoPhone + "'" + ", colleagueOneName = " + "'" + colleagueOneName + "'" + ", colleagueOnePhone = " + "'" + colleagueOnePhone + "'" + ", colleagueTwoName = " + "'" + colleagueTwoName + "'" + ", colleagueTwoPhone = " + "'" + colleagueTwoPhone + "'" + ", companyname = " + "'" + companyname + "'" + ", companytype = " + "'" + companytype + "'" + ", companysector = " + "'" + companysector + "'" + ", companyposition = " + "'" + companyposition + "'" + ", companytime = " + "'" + companytime + "'" + ", leaderName = " + "'" + leaderName + "'" + ", companyScale = " + "'" + companyScale + "'" + ", monthSalary = " + "'" + monthSalary + "'" + ", acquairSalaryType = " + "'" + acquairSalaryType + "'" + ", acquairSalaryDate = " + "'" + acquairSalaryDate + "'" + ", companyAdress = " + "'" + companyAdress + "'" + ", companyPhoneNumber = " + "'" + companyPhoneNumber + "'" + ", commuteTime = " + "'" + commuteTime + "'" + ", remark = " + "'" + remark + "'" + ", submitTime = " + "'" + currentTime + "'" + ", status = " + 1 + " WHERE id=" + clientId;
             String sql = "UPDATE " + TABLE_NAME + str;
             int code = statement.executeUpdate(sql);
@@ -484,9 +561,9 @@ public class HelloController {
                 success.code = 0;
                 success.msg = "updateData添加信息异常码:" + code;
             }
-            statement.close();
-            connection.close();
+            closeResource(statement, connection);
         } catch (SQLException e) {
+            closeResource(statement, connection);
             success.msg = "丰沛:updateData添加客户失败";
             success.code = 0;
         }
@@ -534,10 +611,12 @@ public class HelloController {
         return respondMsgToUserMono.map(response -> {
             BaseData result = new BaseData();
             if (Objects.equals(response.returnstatus, "Success")) {
+                Connection connection = null;
+                Statement statement = null;
                 try {
-                    Connection connection = dataSource.getConnection();
-                    Statement statement = connection.createStatement();
-                    String str = " SET sendMsg = " + 1  + " WHERE id=" + clientId;
+                    connection = dataSource.getConnection();
+                    statement = connection.createStatement();
+                    String str = " SET sendMsg = " + 1 + " WHERE id=" + clientId;
                     String sql = "UPDATE " + TABLE_NAME + str;
                     int code = statement.executeUpdate(sql);
                     if (code == 1) {
@@ -547,9 +626,9 @@ public class HelloController {
                         result.code = 1;
                         result.msg = "发送成功,但修改数据库失败";
                     }
-                    statement.close();
-                    connection.close();
+                    closeResource(statement, connection);
                 } catch (Exception e) {
+                    closeResource(statement, connection);
                     result.code = 1;
                     result.msg = "发送成功,但修改数据库失败";
                 }

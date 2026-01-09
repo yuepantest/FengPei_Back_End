@@ -20,11 +20,18 @@ public class DataDao {
 
     public long addClientData(Client client, DataSource dataSource) {
         long id = 0;
+        Connection connection = null;
+        Statement statement = null;
         try {
-            Connection connection = dataSource.getConnection();
-            Statement statement = connection.createStatement();
+            connection = dataSource.getConnection();
+            statement = connection.createStatement();
+            String sqlCheck = "SELECT 1 FROM " + TABLE_NAME + " WHERE identityCard = '" + client.identityCard + "' LIMIT 1";
+            ResultSet resultSet = statement.executeQuery(sqlCheck);
+            if (resultSet.next()) {
+                return HelloController.REPETITION;
+            }
             String sql = businessTool.getString(client, TABLE_NAME);
-            int code = statement.executeUpdate(sql,Statement.RETURN_GENERATED_KEYS);
+            int code = statement.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS);
             if (code == 1) {
                 ResultSet generatedKeys = statement.getGeneratedKeys();
                 if (generatedKeys.next()) {
@@ -37,12 +44,21 @@ public class DataDao {
             closeResource(statement, connection);
             return id;
         } catch (SQLException e) {
+            closeResource(statement, connection);
             return id;
         }
     }
 
-    public void closeResource(Statement statement, Connection connection) throws SQLException {
-        statement.close();
-        connection.close();
+    public void closeResource(Statement statement, Connection connection) {
+        try {
+            if (statement != null) {
+                statement.close();
+            }
+            if (connection != null) {
+                connection.close();
+            }
+        } catch (Exception ignored) {
+
+        }
     }
 }

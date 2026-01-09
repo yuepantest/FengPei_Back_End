@@ -8,7 +8,6 @@ import java.util.Objects;
 
 
 public class BusinessTool {
-
     public FormalTool formalTool = new FormalTool();
 
     public CalculateData setSelectDataContent(Integer sum, Integer type, String bankId, String identityCard, long clientId,String applicationNumber) {
