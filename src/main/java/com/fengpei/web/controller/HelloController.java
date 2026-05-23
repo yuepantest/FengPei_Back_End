@@ -1,20 +1,13 @@
 package com.fengpei.web.controller;
 
-
 import com.fengpei.web.WebClient.ExternalService;
-import com.fengpei.web.WebClient.WebClientConfig;
 import com.fengpei.web.entiry.*;
 import com.fengpei.web.tool.BusinessTool;
 import com.fengpei.web.tool.EncryptUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
-
 import javax.sql.DataSource;
-import java.io.UnsupportedEncodingException;
-import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -23,7 +16,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-
 
 @RestController
 public class HelloController {
@@ -34,7 +26,7 @@ public class HelloController {
     public final static long REPETITION = -100215401;//数据库某些字段重复
     private final DataDao dataDao = new DataDao();
     public final BusinessTool businessTool = new BusinessTool();
-
+    
     private final ExternalService externalService;
 
     public HelloController(ExternalService externalService) {

@@ -9,11 +9,11 @@ import reactor.core.publisher.Mono;
 
 @SpringBootApplication
 public class WebApplication  {//implements CommandLineRunner
-//    private final HelloController myController; // 注入 Controller
-//
-//    public WebApplication(HelloController myController) {
-//        this.myController = myController;
-//    }
+    private final HelloController myController; // 注入 Controller
+
+    public WebApplication(HelloController myController) {
+        this.myController = myController;
+    }
     public static void main(String[] args) {
        SpringApplication.run(WebApplication.class, args);
     }

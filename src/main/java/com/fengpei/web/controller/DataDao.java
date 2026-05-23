@@ -25,11 +25,11 @@ public class DataDao {
         try {
             connection = dataSource.getConnection();
             statement = connection.createStatement();
-            String sqlCheck = "SELECT 1 FROM " + TABLE_NAME + " WHERE identityCard = '" + client.identityCard + "' LIMIT 1";
-            ResultSet resultSet = statement.executeQuery(sqlCheck);
-            if (resultSet.next()) {
-                return HelloController.REPETITION;
-            }
+//            String sqlCheck = "SELECT 1 FROM " + TABLE_NAME + " WHERE identityCard = '" + client.identityCard + "' LIMIT 1";
+//            ResultSet resultSet = statement.executeQuery(sqlCheck);
+//            if (resultSet.next()) {
+//                return HelloController.REPETITION;
+//            }
             String sql = businessTool.getString(client, TABLE_NAME);
             int code = statement.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS);
             if (code == 1) {
