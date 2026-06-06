@@ -477,7 +477,7 @@ public class HelloController {
             if (clientId < 1) {
                 if (clientId == REPETITION) {
                     success.code = 0;
-                    success.msg = "你已经提交过申请了，请等待...如有疑问请联系公司客服";
+                    success.msg = "该用户已申请过该产品了，请勿重复申请。";
                     return success;
                 } else {
                     success.code = 0;

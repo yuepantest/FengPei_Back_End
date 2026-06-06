@@ -6,10 +6,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
+import java.util.Objects;
 
 
 public class DataDao {
@@ -25,11 +23,15 @@ public class DataDao {
         try {
             connection = dataSource.getConnection();
             statement = connection.createStatement();
-//            String sqlCheck = "SELECT 1 FROM " + TABLE_NAME + " WHERE identityCard = '" + client.identityCard + "' LIMIT 1";
-//            ResultSet resultSet = statement.executeQuery(sqlCheck);
-//            if (resultSet.next()) {
-//                return HelloController.REPETITION;
-//            }
+            String sqlCheck = "SELECT 1 FROM " + TABLE_NAME + " WHERE identityCard = ? AND type = ? LIMIT 1";
+            PreparedStatement ps = connection.prepareStatement(sqlCheck);
+            ps.setString(1, client.identityCard);
+            ps.setInt(2, client.type);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                // 已存在
+                return HelloController.REPETITION;
+            }
             String sql = businessTool.getString(client, TABLE_NAME);
             int code = statement.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS);
             if (code == 1) {
