@@ -7,11 +7,9 @@ import com.fengpei.web.tool.EncryptUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
+
 import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -26,7 +24,7 @@ public class HelloController {
     public final static long REPETITION = -100215401;//数据库某些字段重复
     private final DataDao dataDao = new DataDao();
     public final BusinessTool businessTool = new BusinessTool();
-    
+
     private final ExternalService externalService;
 
     public HelloController(ExternalService externalService) {
@@ -239,10 +237,57 @@ public class HelloController {
         return success;
     }
 
+    @PostMapping("/deleteFirstListClients")
+    public BaseData deleteFirstListClients(String Password) {
+        BaseData baseData = new BaseData();
+        if (Password == null || !Password.equals("987321FP")) {
+            baseData.code = 1;
+            baseData.msg = "密码错误";
+            return baseData;
+        }
+        Connection connection = null;
+        PreparedStatement ps = null;
+        Statement countStmt = null;
+        ResultSet rs = null;
+        try {
+            connection = dataSource.getConnection();
+            //删除最早100条（按id排序）
+            String sql = "DELETE FROM " + TABLE_NAME +
+                    " WHERE id IN (" +
+                    " SELECT id FROM (" +
+                    " SELECT id FROM " + TABLE_NAME +
+                    " ORDER BY id ASC LIMIT 10" +
+                    " ) t" +
+                    " )";
+            ps = connection.prepareStatement(sql);
+            ps.executeUpdate();
+            // 查询剩余总数
+            String countSql = "SELECT COUNT(*) FROM " + TABLE_NAME;
+            countStmt = connection.createStatement();
+            rs = countStmt.executeQuery(countSql);
+            int remainCount = 0;
+            if (rs.next()) {
+                remainCount = rs.getInt(1);
+            }
+            baseData.code = 1;
+            baseData.msg = "删除完成，当前剩余数据：" + remainCount + " 条";
+        } catch (SQLException e) {
+            baseData.code = 0;
+            baseData.msg = "删除失败: " + e.getMessage();
+        } finally {
+            try {
+                if (rs != null) rs.close();
+                if (countStmt != null) countStmt.close();
+                if (ps != null) ps.close();
+                if (connection != null) connection.close();
+            } catch (SQLException ignored) {}
+        }
+        return baseData;
+    }
     /**
      * 删除客户
      */
-    @PostMapping("/deleteClient-tes")
+    @PostMapping("/deleteClient")
     public BaseData deleteClient(Integer clientId) {
         BaseData baseData = new BaseData();
         if (clientId == null) {
@@ -258,12 +303,12 @@ public class HelloController {
             String str = " WHERE id = " + clientId;
             String sql = "DELETE FROM " + TABLE_NAME + str;
             int code = statement.executeUpdate(sql);
-            if (code == 1) {
+            if (code > 0) {
                 baseData.code = 1;
                 baseData.msg = "删除成功";
             } else {
                 baseData.code = 0;
-                baseData.msg = "deleteClient删除数据异常码:" + code;
+                baseData.msg = "未找到数据，删除失败";
             }
             statement.close();
             connection.close();
@@ -278,35 +323,40 @@ public class HelloController {
     /**
      * 删除客户
      */
-    @PostMapping("/deleteClientByIdentityCard")
-    public BaseData deleteClientByIdentityCard(String identityCard) {
+    @PostMapping("/deleteClientByIdentityCardAndType")
+    public BaseData deleteClientByIdentityCardAndType(String identityCard, String type) {
         BaseData baseData = new BaseData();
-        if (identityCard == null) {
+        if (identityCard == null || type == null) {
             baseData.code = 1;
             baseData.msg = NULL_PARAMETER;
             return baseData;
         }
         Connection connection = null;
-        Statement statement = null;
+        PreparedStatement ps = null;
         try {
             connection = dataSource.getConnection();
-            statement = connection.createStatement();
-            String str = " WHERE identityCard = " + identityCard;
-            String sql = "DELETE FROM " + TABLE_NAME + str;
-            int code = statement.executeUpdate(sql);
-            if (code == 1) {
+            String sql = "DELETE FROM " + TABLE_NAME +
+                    " WHERE identityCard = ? AND type = ?";
+            ps = connection.prepareStatement(sql);
+            ps.setString(1, identityCard);
+            ps.setString(2, type);
+            int code = ps.executeUpdate();
+            if (code > 0) {
                 baseData.code = 1;
                 baseData.msg = "删除成功";
             } else {
                 baseData.code = 0;
-                baseData.msg = "deleteClient删除数据异常码:" + code;
+                baseData.msg = "未找到数据，删除失败";
             }
-            statement.close();
-            connection.close();
         } catch (SQLException e) {
-            baseData.msg = "丰沛:deleteClient删除客户失败";
+            baseData.msg = "删除数据失败: " + e.getMessage();
             baseData.code = 0;
-            closeResource(statement, connection);
+        } finally {
+            try {
+                if (ps != null) ps.close();
+                if (connection != null) connection.close();
+            } catch (SQLException ignored) {
+            }
         }
         return baseData;
     }
@@ -369,9 +419,9 @@ public class HelloController {
      * 更改客户信息(通过/再次补充)
      */
     @PostMapping("/modifyRefuseClientData")
-    public BaseData modifyRefuseClientData(Integer clientId, String refuseReasonOne, String refuseReasonTwo) {
+    public BaseData modifyRefuseClientData(Integer clientId, String refuseReasonOne) {
         BaseData baseData = new BaseData();
-        if (clientId == null || refuseReasonOne == null || refuseReasonOne.isEmpty() || refuseReasonTwo == null || refuseReasonTwo.isEmpty()) {
+        if (clientId == null || refuseReasonOne == null || refuseReasonOne.isEmpty()) {
             baseData.code = 1;
             baseData.msg = NULL_PARAMETER;
             return baseData;
@@ -400,7 +450,7 @@ public class HelloController {
                     return baseData;
                 }
             }
-            String str = " SET status = " + 3 + ", refuseReasonOne = " + "'" + refuseReasonOne + "'" + ", refuseReasonTwo = " + "'" + refuseReasonTwo + "'" + " WHERE id=" + clientId;
+            String str = " SET status = " + 3 + ", refuseReasonOne = " + "'" + refuseReasonOne + "'" + " WHERE id=" + clientId;
             String sql = "UPDATE " + TABLE_NAME + str;
             int code = statement.executeUpdate(sql);
             if (code == 1) {

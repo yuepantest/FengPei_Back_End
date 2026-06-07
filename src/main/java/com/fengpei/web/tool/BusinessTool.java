@@ -148,7 +148,6 @@ public class BusinessTool {
         client.commuteTime = resultSet.getString("commuteTime");
         client.remark = resultSet.getString("remark");
         client.submitTime = resultSet.getString("submitTime");
-        client.refuseReasonTwo = resultSet.getString("refuseReasonTwo");
         client.refuseReasonOne = resultSet.getString("refuseReasonOne");
         client.applicationNumber = resultSet.getString("applicationNumber");
         client.sendMsg = resultSet.getInt("sendMsg");

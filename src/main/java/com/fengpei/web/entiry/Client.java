@@ -52,7 +52,6 @@ public class Client {
     public String remark;
     public String submitTime;
     public String refuseReasonOne;
-    public String refuseReasonTwo;
     public String applicationNumber;
     public Integer sendMsg;
 }
