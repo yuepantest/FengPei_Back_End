@@ -7,6 +7,7 @@ import com.fengpei.web.tool.EncryptUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import javax.sql.DataSource;
 import java.sql.*;
@@ -166,12 +167,13 @@ public class HelloController {
         }
         Connection connection = null;
         Statement statement = null;
+        ResultSet resultSet = null;
         try {
             connection = dataSource.getConnection();
             statement = connection.createStatement();
             int limitNum = 20;
             String sql = "SELECT * FROM " + TABLE_NAME + " ORDER BY id DESC " + " LIMIT " + limitNum + " OFFSET " + (page - 1) * limitNum;
-            ResultSet resultSet = statement.executeQuery(sql);
+            resultSet = statement.executeQuery(sql);
             try {
                 while (resultSet.next()) {
                     Client client = businessTool.setClientData(resultSet);
@@ -183,10 +185,16 @@ public class HelloController {
                 success.setCode(0);
                 success.setMsg("丰沛:getUserList解析数据异常");
             }
-            closeResource(statement, connection);
         } catch (SQLException e) {
             success.setCode(0);
             success.setMsg("丰沛:getUserList数据库操作失败");
+        } finally {
+            if (resultSet != null) {
+                try {
+                    resultSet.close();
+                } catch (Exception ignored) {
+                }
+            }
             closeResource(statement, connection);
         }
         success.setData(clientList);
@@ -210,12 +218,13 @@ public class HelloController {
         }
         Connection connection = null;
         Statement statement = null;
+        ResultSet resultSet = null;
         try {
             connection = dataSource.getConnection();
             statement = connection.createStatement();
             int limitNum = 20;
             String sql = "SELECT * FROM " + TABLE_NAME + " WHERE status != 0 " + " ORDER BY submitTime DESC " + " LIMIT " + limitNum + " OFFSET " + (page - 1) * limitNum;
-            ResultSet resultSet = statement.executeQuery(sql);
+            resultSet = statement.executeQuery(sql);
             try {
                 while (resultSet.next()) {
                     Client client = businessTool.setClientData(resultSet);
@@ -227,10 +236,16 @@ public class HelloController {
                 success.setCode(0);
                 success.setMsg("丰沛:getUserList解析数据异常");
             }
-            closeResource(statement, connection);
         } catch (SQLException e) {
             success.setCode(0);
             success.setMsg("丰沛:getUserList数据库操作失败");
+        } finally {
+            if (resultSet != null) {
+                try {
+                    resultSet.close();
+                } catch (Exception ignored) {
+                }
+            }
             closeResource(statement, connection);
         }
         success.setData(clientList);
@@ -252,13 +267,7 @@ public class HelloController {
         try {
             connection = dataSource.getConnection();
             //删除最早100条（按id排序）
-            String sql = "DELETE FROM " + TABLE_NAME +
-                    " WHERE id IN (" +
-                    " SELECT id FROM (" +
-                    " SELECT id FROM " + TABLE_NAME +
-                    " ORDER BY id ASC LIMIT 10" +
-                    " ) t" +
-                    " )";
+            String sql = "DELETE FROM " + TABLE_NAME + " WHERE id IN (" + " SELECT id FROM (" + " SELECT id FROM " + TABLE_NAME + " ORDER BY id ASC LIMIT 10" + " ) t" + " )";
             ps = connection.prepareStatement(sql);
             ps.executeUpdate();
             // 查询剩余总数
@@ -280,10 +289,12 @@ public class HelloController {
                 if (countStmt != null) countStmt.close();
                 if (ps != null) ps.close();
                 if (connection != null) connection.close();
-            } catch (SQLException ignored) {}
+            } catch (SQLException ignored) {
+            }
         }
         return baseData;
     }
+
     /**
      * 删除客户
      */
@@ -295,27 +306,20 @@ public class HelloController {
             baseData.msg = NULL_PARAMETER;
             return baseData;
         }
-        Connection connection = null;
-        Statement statement = null;
-        try {
-            connection = dataSource.getConnection();
-            statement = connection.createStatement();
-            String str = " WHERE id = " + clientId;
-            String sql = "DELETE FROM " + TABLE_NAME + str;
-            int code = statement.executeUpdate(sql);
-            if (code > 0) {
+        String sql = "DELETE FROM " + TABLE_NAME + " WHERE id = ?";
+        try (Connection connection = dataSource.getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setInt(1, clientId);
+            int rows = ps.executeUpdate();
+            if (rows > 0) {
                 baseData.code = 1;
                 baseData.msg = "删除成功";
             } else {
                 baseData.code = 0;
                 baseData.msg = "未找到数据，删除失败";
             }
-            statement.close();
-            connection.close();
         } catch (SQLException e) {
-            baseData.msg = "丰沛:deleteClient删除客户失败";
             baseData.code = 0;
-            closeResource(statement, connection);
+            baseData.msg = "删除失败: " + e.getMessage();
         }
         return baseData;
     }
@@ -335,8 +339,7 @@ public class HelloController {
         PreparedStatement ps = null;
         try {
             connection = dataSource.getConnection();
-            String sql = "DELETE FROM " + TABLE_NAME +
-                    " WHERE identityCard = ? AND type = ?";
+            String sql = "DELETE FROM " + TABLE_NAME + " WHERE identityCard = ? AND type = ?";
             ps = connection.prepareStatement(sql);
             ps.setString(1, identityCard);
             ps.setString(2, type);
@@ -372,45 +375,48 @@ public class HelloController {
             baseData.msg = NULL_PARAMETER;
             return baseData;
         }
-        Connection connection = null;
-        Statement statement = null;
-        try {
-            connection = dataSource.getConnection();
-            statement = connection.createStatement();
-            //先查询ID
-            String sqlInquire = "SELECT * FROM " + TABLE_NAME + " where id =";
-            ResultSet resultSet = statement.executeQuery(sqlInquire + clientId);
-            if (resultSet.next()) {
-                Client client = businessTool.setClientData(resultSet);
-                if (client.status == 0) {
-                    baseData.code = 1;
-                    baseData.msg = "该用户还没有补交资料，你不能更改";
-                    return baseData;
-                } else if (client.status == 2) {
-                    baseData.code = 1;
-                    baseData.msg = "该用户已经通过审核了，你不能更改";
-                    return baseData;
-                } else if (client.status == 3) {
-                    baseData.code = 1;
-                    baseData.msg = "该用户已经被拒绝了，你不能更改";
+        String selectSql = "SELECT status FROM " + TABLE_NAME + " WHERE id = ?";
+        String updateSql = "UPDATE " + TABLE_NAME + " SET status = ? WHERE id = ?";
+        try (Connection connection = dataSource.getConnection(); PreparedStatement selectPs = connection.prepareStatement(selectSql); PreparedStatement updatePs = connection.prepareStatement(updateSql)) {
+            // 1. 查询当前状态
+            selectPs.setInt(1, clientId);
+            try (ResultSet rs = selectPs.executeQuery()) {
+                if (rs.next()) {
+                    int currentStatus = rs.getInt("status");
+
+                    if (currentStatus == 0) {
+                        baseData.code = 1;
+                        baseData.msg = "该用户还没有补交资料，你不能更改";
+                        return baseData;
+                    } else if (currentStatus == 2) {
+                        baseData.code = 1;
+                        baseData.msg = "该用户已经通过审核了，你不能更改";
+                        return baseData;
+                    } else if (currentStatus == 3) {
+                        baseData.code = 1;
+                        baseData.msg = "该用户已经被拒绝了，你不能更改";
+                        return baseData;
+                    }
+                } else {
+                    baseData.code = 0;
+                    baseData.msg = "用户不存在";
                     return baseData;
                 }
             }
-            String str = " SET status = " + status + " WHERE id=" + clientId;
-            String sql = "UPDATE " + TABLE_NAME + str;
-            int code = statement.executeUpdate(sql);
-            if (code == 1) {
+            // 2. 更新状态
+            updatePs.setInt(1, status);
+            updatePs.setInt(2, clientId);
+            int rows = updatePs.executeUpdate();
+            if (rows == 1) {
                 baseData.code = 1;
                 baseData.msg = "修改成功";
             } else {
                 baseData.code = 0;
-                baseData.msg = "modifyClientData修改数据异常码:" + code;
+                baseData.msg = "修改失败";
             }
-            closeResource(statement, connection);
         } catch (Exception e) {
-            baseData.msg = "丰沛:modifyClientData修改客户失败";
             baseData.code = 0;
-            closeResource(statement, connection);
+            baseData.msg = "修改客户失败: " + e.getMessage();
         }
         return baseData;
     }
@@ -426,46 +432,49 @@ public class HelloController {
             baseData.msg = NULL_PARAMETER;
             return baseData;
         }
-        Connection connection = null;
-        Statement statement = null;
-        try {
-            connection = dataSource.getConnection();
-            statement = connection.createStatement();
-            //先查询ID
-            String sqlInquire = "SELECT * FROM " + TABLE_NAME + " where id =";
-            ResultSet resultSet = statement.executeQuery(sqlInquire + clientId);
-            if (resultSet.next()) {
-                Client client = businessTool.setClientData(resultSet);
-                if (client.status == 0) {
-                    baseData.code = 1;
-                    baseData.msg = "该用户还没有补交资料，你不能更改";
-                    return baseData;
-                } else if (client.status == 2) {
-                    baseData.code = 1;
-                    baseData.msg = "该用户已经通过审核了，你不能更改";
-                    return baseData;
-                } else if (client.status == 3) {
-                    baseData.code = 1;
-                    baseData.msg = "该用户已经被拒绝了，你不能更改";
+        String selectSql = "SELECT status FROM " + TABLE_NAME + " WHERE id = ?";
+        String updateSql = "UPDATE " + TABLE_NAME + " SET status = ?, refuseReasonOne = ? WHERE id = ?";
+        try (Connection connection = dataSource.getConnection(); PreparedStatement selectPs = connection.prepareStatement(selectSql); PreparedStatement updatePs = connection.prepareStatement(updateSql)) {
+            // 1. 查询当前状态
+            selectPs.setInt(1, clientId);
+            try (ResultSet rs = selectPs.executeQuery()) {
+                if (rs.next()) {
+                    int currentStatus = rs.getInt("status");
+
+                    if (currentStatus == 0) {
+                        baseData.code = 1;
+                        baseData.msg = "该用户还没有补交资料，你不能更改";
+                        return baseData;
+                    } else if (currentStatus == 2) {
+                        baseData.code = 1;
+                        baseData.msg = "该用户已经通过审核了，你不能更改";
+                        return baseData;
+                    } else if (currentStatus == 3) {
+                        baseData.code = 1;
+                        baseData.msg = "该用户已经被拒绝了，你不能更改";
+                        return baseData;
+                    }
+                } else {
+                    baseData.code = 0;
+                    baseData.msg = "用户不存在";
                     return baseData;
                 }
             }
-            String str = " SET status = " + 3 + ", refuseReasonOne = " + "'" + refuseReasonOne + "'" + " WHERE id=" + clientId;
-            String sql = "UPDATE " + TABLE_NAME + str;
-            int code = statement.executeUpdate(sql);
-            if (code == 1) {
+            // 2. 执行更新
+            updatePs.setInt(1, 3); // 拒绝状态
+            updatePs.setString(2, refuseReasonOne);
+            updatePs.setInt(3, clientId);
+            int rows = updatePs.executeUpdate();
+            if (rows == 1) {
                 baseData.code = 1;
                 baseData.msg = "修改成功";
             } else {
                 baseData.code = 0;
-                baseData.msg = "modifyClientData修改数据异常码:" + code;
+                baseData.msg = "修改失败";
             }
-            statement.close();
-            connection.close();
         } catch (Exception e) {
-            baseData.msg = "丰沛:modifyClientData修改客户失败";
             baseData.code = 0;
-            closeResource(statement, connection);
+            baseData.msg = "拒绝客户失败: " + e.getMessage();
         }
         return baseData;
     }
@@ -553,33 +562,23 @@ public class HelloController {
             success.msg = NULL_PARAMETER;
             return success;
         }
-        Connection connection = null;
-        Statement statement = null;
-        try {
-            connection = dataSource.getConnection();
-            statement = connection.createStatement();
-            String sql = "SELECT * FROM " + TABLE_NAME + " where id =";
-            ResultSet resultSet = statement.executeQuery(sql + clientId);
-            try {
-                if (resultSet.next()) {
-                    Client client = businessTool.setClientData(resultSet);
-                    success.setData(businessTool.setSelectDataContent(client.assessMoney, client.type, client.bankId, client.identityCard, client.id, client.applicationNumber));
-                    success.code = 1;
-                    success.msg = "请求成功";
-                } else {
-                    success.code = 0;
-                    success.msg = ("没有数据");
-                }
-            } catch (Exception e) {
+        String sql = "SELECT * FROM " + TABLE_NAME + " WHERE id = " + clientId;
+        try (Connection connection = dataSource.getConnection(); Statement statement = connection.createStatement(); ResultSet resultSet = statement.executeQuery(sql)) {
+            if (resultSet.next()) {
+                Client client = businessTool.setClientData(resultSet);
+                success.setData(businessTool.setSelectDataContent(client.assessMoney, client.type, client.bankId, client.identityCard, client.id, client.applicationNumber));
+                success.code = 1;
+                success.msg = "请求成功";
+            } else {
                 success.code = 0;
-                success.msg = "丰沛:getCalculateDate0解析数据异常";
-
+                success.msg = "没有数据";
             }
-            closeResource(statement, connection);
         } catch (SQLException e) {
-            closeResource(statement, connection);
-            success.code = (0);
-            success.msg = "丰沛:getCalculateDate1数据库操作失败";
+            success.code = 0;
+            success.msg = "丰沛:getCalculateDate数据库操作失败: " + e.getMessage();
+        } catch (Exception e) {
+            success.code = 0;
+            success.msg = "丰沛:getCalculateDate解析数据异常: " + e.getMessage();
         }
         return success;
     }
@@ -590,11 +589,11 @@ public class HelloController {
         String currentTime = businessTool.formalTool.getCurrentTime();
         Connection connection = null;
         Statement statement = null;
+        String str = " SET" + " educationBackground = " + "'" + educationBackground + "'" + ", maritalStatus = " + "'" + maritalStatus + "'" + ", debt = " + "'" + debt + "'" + ", repayMonths = " + "'" + repayMonths + "'" + ", presentAddress = " + "'" + presentAddress + "'" + ", detailAddress = " + "'" + detailAddress + "'" + ", livingModel = " + "'" + livingModel + "'" + ", livingSpend = " + livingSpend + ", childrenNumber = " + "'" + childrenNumber + "'" + ", relativeOneName = " + "'" + relativeOneName + "'" + ", relativeOneBetween = " + "'" + relativeOneBetween + "'" + ", relativeOnePhone = " + "'" + relativeOnePhone + "'" + ", relativeTwoName = " + "'" + relativeTwoName + "'" + ", relativeTwoBetween = " + "'" + relativeTwoBetween + "'" + ", relativeTwoPhone = " + "'" + relativeTwoPhone + "'" + ", colleagueOneName = " + "'" + colleagueOneName + "'" + ", colleagueOnePhone = " + "'" + colleagueOnePhone + "'" + ", colleagueTwoName = " + "'" + colleagueTwoName + "'" + ", colleagueTwoPhone = " + "'" + colleagueTwoPhone + "'" + ", companyname = " + "'" + companyname + "'" + ", companytype = " + "'" + companytype + "'" + ", companysector = " + "'" + companysector + "'" + ", companyposition = " + "'" + companyposition + "'" + ", companytime = " + "'" + companytime + "'" + ", leaderName = " + "'" + leaderName + "'" + ", companyScale = " + "'" + companyScale + "'" + ", monthSalary = " + "'" + monthSalary + "'" + ", acquairSalaryType = " + "'" + acquairSalaryType + "'" + ", acquairSalaryDate = " + "'" + acquairSalaryDate + "'" + ", companyAdress = " + "'" + companyAdress + "'" + ", companyPhoneNumber = " + "'" + companyPhoneNumber + "'" + ", commuteTime = " + "'" + commuteTime + "'" + ", remark = " + "'" + remark + "'" + ", submitTime = " + "'" + currentTime + "'" + ", status = " + 1 + " WHERE id=" + clientId;
+        String sql = "UPDATE " + TABLE_NAME + str;
         try {
             connection = dataSource.getConnection();
             statement = connection.createStatement();
-            String str = " SET" + " educationBackground = " + "'" + educationBackground + "'" + ", maritalStatus = " + "'" + maritalStatus + "'" + ", debt = " + "'" + debt + "'" + ", repayMonths = " + "'" + repayMonths + "'" + ", presentAddress = " + "'" + presentAddress + "'" + ", detailAddress = " + "'" + detailAddress + "'" + ", livingModel = " + "'" + livingModel + "'" + ", livingSpend = " + livingSpend + ", childrenNumber = " + "'" + childrenNumber + "'" + ", relativeOneName = " + "'" + relativeOneName + "'" + ", relativeOneBetween = " + "'" + relativeOneBetween + "'" + ", relativeOnePhone = " + "'" + relativeOnePhone + "'" + ", relativeTwoName = " + "'" + relativeTwoName + "'" + ", relativeTwoBetween = " + "'" + relativeTwoBetween + "'" + ", relativeTwoPhone = " + "'" + relativeTwoPhone + "'" + ", colleagueOneName = " + "'" + colleagueOneName + "'" + ", colleagueOnePhone = " + "'" + colleagueOnePhone + "'" + ", colleagueTwoName = " + "'" + colleagueTwoName + "'" + ", colleagueTwoPhone = " + "'" + colleagueTwoPhone + "'" + ", companyname = " + "'" + companyname + "'" + ", companytype = " + "'" + companytype + "'" + ", companysector = " + "'" + companysector + "'" + ", companyposition = " + "'" + companyposition + "'" + ", companytime = " + "'" + companytime + "'" + ", leaderName = " + "'" + leaderName + "'" + ", companyScale = " + "'" + companyScale + "'" + ", monthSalary = " + "'" + monthSalary + "'" + ", acquairSalaryType = " + "'" + acquairSalaryType + "'" + ", acquairSalaryDate = " + "'" + acquairSalaryDate + "'" + ", companyAdress = " + "'" + companyAdress + "'" + ", companyPhoneNumber = " + "'" + companyPhoneNumber + "'" + ", commuteTime = " + "'" + commuteTime + "'" + ", remark = " + "'" + remark + "'" + ", submitTime = " + "'" + currentTime + "'" + ", status = " + 1 + " WHERE id=" + clientId;
-            String sql = "UPDATE " + TABLE_NAME + str;
             int code = statement.executeUpdate(sql);
             if (code == 1) {
                 success.code = 1;
@@ -603,11 +602,11 @@ public class HelloController {
                 success.code = 0;
                 success.msg = "updateData添加信息异常码:" + code;
             }
-            closeResource(statement, connection);
         } catch (SQLException e) {
-            closeResource(statement, connection);
             success.msg = "丰沛:updateData添加客户失败";
             success.code = 0;
+        } finally {
+            closeResource(statement, connection);
         }
         return success;
     }
@@ -644,41 +643,28 @@ public class HelloController {
     }
 
 
-    /**
-     * 获取客户列表
-     */
     @PostMapping("/sendMsg")
     public Mono<BaseData> sendMsg(Integer clientId, String content, String phone) {
-        Mono<RespondMsgToUser> respondMsgToUserMono = externalService.postData(phone, content);
-        return respondMsgToUserMono.map(response -> {
+        return externalService.postData(phone, content).flatMap(response -> {
             BaseData result = new BaseData();
-            if (Objects.equals(response.returnstatus, "Success")) {
-                Connection connection = null;
-                Statement statement = null;
-                try {
-                    connection = dataSource.getConnection();
-                    statement = connection.createStatement();
-                    String str = " SET sendMsg = " + 1 + " WHERE id=" + clientId;
-                    String sql = "UPDATE " + TABLE_NAME + str;
-                    int code = statement.executeUpdate(sql);
-                    if (code == 1) {
-                        result.code = 1;
-                        result.msg = "发送成功，更新数据库成功";
-                    } else {
-                        result.code = 1;
-                        result.msg = "发送成功,但修改数据库失败";
-                    }
-                    closeResource(statement, connection);
-                } catch (Exception e) {
-                    closeResource(statement, connection);
-                    result.code = 1;
-                    result.msg = "发送成功,但修改数据库失败";
-                }
-            } else {
+            if (!"Success".equals(response.returnstatus)) {
                 result.code = 2;
                 result.msg = "发送失败: " + response.message;
+                return Mono.just(result);
             }
-            return result;
+            return Mono.fromCallable(() -> {
+                String sql = "UPDATE " + TABLE_NAME + " SET sendMsg = 1 WHERE id = " + clientId;
+                try (Connection connection = dataSource.getConnection(); Statement statement = connection.createStatement()) {
+                    int code = statement.executeUpdate(sql);
+                    result.code = 1;
+                    if (code == 1) {
+                        result.msg = "发送成功，更新数据库成功";
+                    } else {
+                        result.msg = "发送成功，但更新数据库失败";
+                    }
+                    return result;
+                }
+            }).subscribeOn(Schedulers.boundedElastic());
         });
     }
 }
